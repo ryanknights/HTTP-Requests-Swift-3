@@ -105,11 +105,61 @@ class ViewController: UIViewController {
     }
     
     func sendPUTRequest () {
-        print("Sending PUT Request")
+        let url = URL(string: "https://jsonplaceholder.typicode.com/posts/1")
+        var request = URLRequest(url:url!)
+        
+        request.httpMethod = "PUT"
+        let postString = "id=10&title=foo&body=bar&userId=1"
+        request.httpBody = postString.data(using: .utf8)
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let data = data, error == nil else {
+                return print("error=\(String(describing: error))")
+            }
+            
+            if let httpStatus = response as? HTTPURLResponse {
+                print("Status Code => \(httpStatus.statusCode)")
+            }
+            
+            do {
+                let keys = try JSONSerialization.jsonObject(with: data, options:.allowFragments) as! [String:AnyObject]
+                
+                for (key, value) in keys {
+                    print("\(key) => \(value)")
+                }
+            } catch let error as NSError{
+                print(error)
+            }
+        }
+        task.resume()
+
     }
     
     func sendDELETERequest () {
-        print("Sending DELETE Request")
+        let url = URL(string: "https://jsonplaceholder.typicode.com/posts/1")
+        var request = URLRequest(url:url!)
+        
+        request.httpMethod = "DELETE"
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let data = data, error == nil else {
+                return print("error=\(String(describing: error))")
+            }
+            
+            if let httpStatus = response as? HTTPURLResponse {
+                print("Status Code => \(httpStatus.statusCode)")
+            }
+            
+            do {
+                let keys = try JSONSerialization.jsonObject(with: data, options:.allowFragments) as! [String:AnyObject]
+                
+                print(keys)
+                
+            } catch let error as NSError{
+                print(error)
+            }
+        }
+        task.resume()
     }
 }
 
