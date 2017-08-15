@@ -9,12 +9,12 @@
 import UIKit
 
 class ViewController: UIViewController {
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         addButtons()
     }
-
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
@@ -39,41 +39,126 @@ class ViewController: UIViewController {
     }
     
     func sendRequest (sender: UIButton) {
-        let type = sender.accessibilityIdentifier
-        
-        if type != nil {
-            let selector = NSSelectorFromString("send" + type! + "Request")
-            perform(selector)
+        if let type = sender.accessibilityIdentifier {
+            switch type {
+            case "GET":
+                sendGETRequest() {(json, response, error) -> Void in
+                    print("GET Callback")
+                    
+                    if error != nil || response == nil {
+                        return print(error! as NSError)
+                    }
+                    
+                    if let statusCode = response?.statusCode {
+                        print("Status Code => \(statusCode)")
+                    }
+                    
+                    if json != nil {
+                        let posts = json as! [[String:AnyObject]]
+                        
+                        for post in posts {
+                            if let id = post["id"], let title = post["title"] {
+                                print("\(id) => \(title)")
+                            }
+                        }
+                    }
+                }
+                break;
+            case "POST":
+                sendPOSTRequest() {(json, response, error) -> Void in
+                    print("POST Callback")
+                    
+                    if error != nil || response == nil {
+                        return print(error! as NSError)
+                    }
+                    
+                    if let statusCode = response?.statusCode {
+                        print("Status Code => \(statusCode)")
+                    }
+                    
+                    if json != nil {
+                        let keys = json as! [String:AnyObject]
+                        
+                        for (key, value) in keys {
+                            print("\(key) => \(value)")
+                        }
+                    }
+                }
+                break;
+            case "PUT":
+                sendPUTRequest() {(json, response, error) -> Void in
+                    print("POST Callback")
+                    
+                    if error != nil || response == nil {
+                        return print(error! as NSError)
+                    }
+                    
+                    if let statusCode = response?.statusCode {
+                        print("Status Code => \(statusCode)")
+                    }
+                    
+                    if json != nil {
+                        let keys = json as! [String:AnyObject]
+                        
+                        for (key, value) in keys {
+                            print("\(key) => \(value)")
+                        }
+                    }
+                }
+                break;
+            case "DELETE":
+                sendDELETERequest() {(json, response, error) -> Void in
+                    print("POST Callback")
+                    
+                    if error != nil || response == nil {
+                        return print(error! as NSError)
+                    }
+                    
+                    if let statusCode = response?.statusCode {
+                        print("Status Code => \(statusCode)")
+                    }
+                    
+                    if json != nil {
+                        let keys = json as! [String:AnyObject]
+                        
+                        for (key, value) in keys {
+                            print("\(key) => \(value)")
+                        }
+                    }
+                }
+                break;
+            default:
+                break;
+            }
+            
+            //let selector = NSSelectorFromString("send" + type + "Request")
+            //perform(selector)
         }
     }
     
-    func sendGETRequest () {
+    func sendGETRequest (callback:@escaping (Any?, HTTPURLResponse?, NSError?)->()) {
         let url = URL(string: "https://jsonplaceholder.typicode.com/posts")
-    
+        
         URLSession.shared.dataTask(with: url!, completionHandler: {data, response, error -> Void in
-            guard let data = data, error == nil else {
-                return print("error=\(String(describing: error))")
-            }
-            
             if let httpStatus = response as? HTTPURLResponse {
-                print("Status Code => \(httpStatus.statusCode)")
-            }
-            
-            do {
-                let posts = try JSONSerialization.jsonObject(with: data, options:.allowFragments) as! [[String:AnyObject]]
-                    
-                for post in posts {
-                    if let id = post["id"], let title = post["title"] {
-                        print("\(id) => \(title)")
-                    }
+                guard let data = data, error == nil else {
+                    return callback(nil, httpStatus, error as NSError?)
                 }
-            } catch let error as NSError{
-                print(error)
+                
+                do {
+                    let posts = try JSONSerialization.jsonObject(with: data, options:.allowFragments)
+                    return callback(posts, httpStatus, nil)
+                    
+                } catch let error as NSError{
+                    return callback(nil, httpStatus, error)
+                }
+            } else {
+                return callback(nil, nil, error as NSError?)
             }
         }).resume()
     }
     
-    func sendPOSTRequest () {
+    func sendPOSTRequest (callback:@escaping (Any?, HTTPURLResponse?, NSError?)->()) {
         
         let url = URL(string: "https://jsonplaceholder.typicode.com/posts")
         var request = URLRequest(url:url!)
@@ -83,28 +168,25 @@ class ViewController: UIViewController {
         request.httpBody = postString.data(using: .utf8)
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let data = data, error == nil else {
-                return print("error=\(String(describing: error))")
-            }
-            
             if let httpStatus = response as? HTTPURLResponse {
-                print("Status Code => \(httpStatus.statusCode)")
-            }
-            
-            do {
-                let keys = try JSONSerialization.jsonObject(with: data, options:.allowFragments) as! [String:AnyObject]
-                
-                for (key, value) in keys {
-                    print("\(key) => \(value)")
+                guard let data = data, error == nil else {
+                    return callback(nil, httpStatus, error as NSError?)
                 }
-            } catch let error as NSError{
-                print(error)
+                
+                do {
+                    let keys = try JSONSerialization.jsonObject(with: data, options:.allowFragments)
+                    return callback(keys, httpStatus, nil)
+                } catch let error as NSError{
+                    return callback(nil, httpStatus, error)
+                }
+            } else {
+                return callback(nil, nil, error as NSError?)
             }
         }
         task.resume()
     }
     
-    func sendPUTRequest () {
+    func sendPUTRequest (callback:@escaping (Any?, HTTPURLResponse?, NSError?)->()) {
         let url = URL(string: "https://jsonplaceholder.typicode.com/posts/1")
         var request = URLRequest(url:url!)
         
@@ -113,50 +195,45 @@ class ViewController: UIViewController {
         request.httpBody = postString.data(using: .utf8)
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let data = data, error == nil else {
-                return print("error=\(String(describing: error))")
-            }
-            
             if let httpStatus = response as? HTTPURLResponse {
-                print("Status Code => \(httpStatus.statusCode)")
-            }
-            
-            do {
-                let keys = try JSONSerialization.jsonObject(with: data, options:.allowFragments) as! [String:AnyObject]
-                
-                for (key, value) in keys {
-                    print("\(key) => \(value)")
+                guard let data = data, error == nil else {
+                    return callback(nil, httpStatus, error as NSError?)
                 }
-            } catch let error as NSError{
-                print(error)
+                
+                do {
+                    let keys = try JSONSerialization.jsonObject(with: data, options:.allowFragments)
+                    return callback(keys, httpStatus, nil)
+                } catch let error as NSError{
+                    return callback(nil, httpStatus, error)
+                }
+            } else {
+                return callback(nil, nil, error as NSError?)
             }
         }
         task.resume()
-
+        
     }
     
-    func sendDELETERequest () {
+    func sendDELETERequest (callback:@escaping (Any?, HTTPURLResponse?, NSError?)->()) {
         let url = URL(string: "https://jsonplaceholder.typicode.com/posts/1")
         var request = URLRequest(url:url!)
         
         request.httpMethod = "DELETE"
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let data = data, error == nil else {
-                return print("error=\(String(describing: error))")
-            }
-            
             if let httpStatus = response as? HTTPURLResponse {
-                print("Status Code => \(httpStatus.statusCode)")
-            }
-            
-            do {
-                let keys = try JSONSerialization.jsonObject(with: data, options:.allowFragments) as! [String:AnyObject]
+                guard let data = data, error == nil else {
+                    return callback(nil, httpStatus, error as NSError?)
+                }
                 
-                print(keys)
-                
-            } catch let error as NSError{
-                print(error)
+                do {
+                    let keys = try JSONSerialization.jsonObject(with: data, options:.allowFragments)
+                    return callback(keys, httpStatus, nil)
+                } catch let error as NSError{
+                    return callback(nil, httpStatus, error)
+                }
+            } else {
+                return callback(nil, nil, error as NSError?)
             }
         }
         task.resume()
